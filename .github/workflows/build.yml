@@ -1,7 +1,7 @@
 name: Build IPA
 
 on:
-#  push:
+  push:
     branches: [main]
   workflow_dispatch:
 
