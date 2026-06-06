@@ -15,7 +15,7 @@ packages:
 
 settings:
   base:
-    SWIFT_VERSION: "5.10"
+    SWIFT_VERSION: "6.0"
     ENABLE_BITCODE: NO
     DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
@@ -23,7 +23,7 @@ targets:
   RealtimeTranslator:
     type: application
     platform: iOS
-    deploymentTarget: "18.0"
+    deploymentTarget: "26.0"
 
     sources:
       - path: Sources/RealtimeTranslator
