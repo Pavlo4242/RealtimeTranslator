@@ -3,9 +3,9 @@ name: RealtimeTranslator
 options:
   bundleIdPrefix: com.realtimetranslator
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "18.0"
   createIntermediateGroups: true
-  xcodeVersion: "26"
+  xcodeVersion: "16"
 
 # ── SPM packages ─────────────────────────────────────────────────────────────
 packages:
@@ -15,7 +15,7 @@ packages:
 
 settings:
   base:
-    SWIFT_VERSION: "6.0"
+    SWIFT_VERSION: "5.10"
     ENABLE_BITCODE: NO
     DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
@@ -23,7 +23,7 @@ targets:
   RealtimeTranslator:
     type: application
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "18.0"
 
     sources:
       - path: Sources/RealtimeTranslator

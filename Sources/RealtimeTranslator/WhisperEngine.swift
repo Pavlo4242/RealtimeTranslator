@@ -49,7 +49,7 @@ final class WhisperEngine {
             detectLanguage:          false,
             skipSpecialTokens:       true,
             withoutTimestamps:       true,
-            suppressorBlank:          true,
+            suppressBlank:          true,
             noSpeechThreshold:       0.6   // discard near-silence frames
         )
     }
