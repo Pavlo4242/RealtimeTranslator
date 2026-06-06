@@ -1,3 +1,4 @@
+import SwiftUI
 import Foundation
 import AVFoundation
 import Speech
@@ -39,9 +40,14 @@ final class TranslatorEngine: NSObject {
     // ── Sub-engines ───────────────────────────────────────────────────────
     let whisperEngine = WhisperEngine()
     let appleEngine   = AppleTranslationEngine()
+    /// Backed by UserDefaults so the chosen engine survives app restarts.
+    @AppStorage(AppStorageKeys.preferredEngine)
     var enginePreference: TranslationEngineType = .auto
 
     // ── History ───────────────────────────────────────────────────────────
+    @AppStorage(AppStorageKeys.showDebugLog)
+    var showDebugLog: Bool = false
+
     var store = ConversationStore()
     private var currentConversation = StoredConversation()
 
@@ -49,6 +55,9 @@ final class TranslatorEngine: NSObject {
     private let audioEngine   = AVAudioEngine()
     private var nativeSampleRate: Double = 44_100
     private var rawSpeechBuffer: [Float] = []
+    /// Holds at most one chunk that arrived while processing was busy.
+    /// When the current translation finishes, this chunk is processed next.
+    private var pendingChunk: [Float]?
 
     // ── VAD ───────────────────────────────────────────────────────────────
     private var isSpeechActive  = false
@@ -70,12 +79,15 @@ final class TranslatorEngine: NSObject {
         log("Starting Whisper setup")
         await whisperEngine.setup()
 
+        // Always set up Apple engine so it is available for manual selection
+        // and as a Whisper fallback, regardless of Whisper's result.
+        await appleEngine.setup()
+
         switch whisperEngine.state {
         case .ready:
             log("Whisper ready")
         case .failed(let e):
             log("Whisper failed: \(e)")
-            await appleEngine.setup()
             if appleEngine.isAvailable {
                 log("Apple engine ready (fallback)")
             } else {
@@ -128,10 +140,12 @@ final class TranslatorEngine: NSObject {
     }
 
     func stopListening() {
-        store.upsert(currentConversation)
+        // Stop the audio pipeline first so no further callbacks can append
+        // to currentConversation after we persist it.
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         rawSpeechBuffer = []
+        pendingChunk    = nil
         isSpeechActive  = false
         silenceStart    = nil
         speechStart     = nil
@@ -140,6 +154,8 @@ final class TranslatorEngine: NSObject {
         liveTranscript  = ""
         try? AVAudioSession.sharedInstance()
              .setActive(false, options: .notifyOthersOnDeactivation)
+        // Persist after the tap is removed — snapshot is now stable.
+        store.upsert(currentConversation)
         log("Stopped")
     }
 
@@ -226,12 +242,17 @@ final class TranslatorEngine: NSObject {
         let raw = rawSpeechBuffer
         resetBuffer()
 
-        guard !isProcessing else { log("Dropped chunk (busy)"); return }
-
         let srcRate = nativeSampleRate
+        guard !isProcessing else {
+            // Buffer the latest chunk; older buffered chunk is discarded.
+            log("Queued chunk (was busy); previous pending chunk replaced if any")
+            let s16k = resampleLinear(raw, from: srcRate, to: 16_000)
+            pendingChunk = s16k
+            return
+        }
+
         Task { [weak self] in
             guard let self else { return }
-            // Resample to 16 kHz (Whisper requirement) — linear interpolation
             let s16k = resampleLinear(raw, from: srcRate, to: 16_000)
             await self.process(samples: s16k)
         }
@@ -268,7 +289,14 @@ final class TranslatorEngine: NSObject {
     private func process(samples: [Float]) async {
         isProcessing   = true
         liveTranscript = "⟳ Translating…"
-        defer { isProcessing = false }
+        defer {
+            isProcessing = false
+            // Drain the pending chunk, if any arrived while we were busy.
+            if let next = pendingChunk {
+                pendingChunk = nil
+                Task { await self.process(samples: next) }
+            }
+        }
 
         let tel    = TelemetryLogger()
         let useKit: Bool = {

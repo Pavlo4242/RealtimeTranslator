@@ -60,7 +60,12 @@ final class WhisperEngine {
     func setup() async {
         switch state {
         case .idle, .failed: break
-        default: return
+        case .loading, .ready: return   // already loaded or in progress
+        case .inferring:
+            // Wait until inference finishes before allowing a reload.
+            // Callers (e.g. Settings "Retry") should disable the button while
+            // state == .inferring to avoid reaching this branch.
+            return
         }
         state = .loading
         do {

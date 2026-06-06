@@ -70,11 +70,17 @@ final class AppleTranslationEngine {
     // MARK: - Translation session (SwiftUI-driven)
 
     private func translateText(_ thai: String) async throws -> String {
+        // Cancel any in-flight translation BEFORE overwriting pendingText,
+        // so the displaced continuation always sees the text it was created for.
+        if let existing = sessionContinuation {
+            existing.resume(throwing: CancellationError())
+            sessionContinuation = nil
+            translationConfig   = nil
+        }
         pendingText = thai
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { [weak self] cont in
                 guard let self else { cont.resume(throwing: CancellationError()); return }
-                self.sessionContinuation?.resume(throwing: CancellationError())
                 self.sessionContinuation = cont
                 // Setting this triggers .translationTask in ContentView
                 self.translationConfig = TranslationSession.Configuration(

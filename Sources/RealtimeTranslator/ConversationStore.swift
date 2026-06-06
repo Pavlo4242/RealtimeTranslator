@@ -29,6 +29,7 @@ struct StoredMessage: Codable, Identifiable {
 // MARK: - Store
 
 @Observable
+@MainActor
 final class ConversationStore {
 
     var conversations: [StoredConversation] = []

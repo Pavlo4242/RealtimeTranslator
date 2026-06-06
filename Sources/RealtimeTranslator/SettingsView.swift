@@ -35,6 +35,7 @@ struct SettingsView: View {
                                 Task { await engine.whisperEngine.setup() }
                             }
                             .foregroundStyle(.cyan)
+                            .disabled(engine.whisperEngine.state == .inferring)
                         }
                     }
                     .listRowBackground(Color(white: 0.14))
@@ -49,6 +50,12 @@ struct SettingsView: View {
                                 .foregroundStyle(engine.appleEngine.isAvailable
                                                  ? .green : .red.opacity(0.7))
                         }
+                    }
+                    .listRowBackground(Color(white: 0.14))
+
+                    // ── Developer ────────────────────────────────────────
+                    Section("Developer") {
+                        Toggle("Show debug log", isOn: $engine.showDebugLog)
                     }
                     .listRowBackground(Color(white: 0.14))
 

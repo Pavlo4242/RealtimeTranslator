@@ -25,7 +25,9 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(engine: engine, isPresented: $showSettings)
         }
-        .overlay(alignment: .bottom) { debugOverlay }
+        .overlay(alignment: .bottom) {
+            if engine.showDebugLog { debugOverlay }
+        }
         .task { await engine.boot() }
     }
 
@@ -81,6 +83,7 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             .onChange(of: engine.messages.count) {
+                guard engine.messages.count > 0 else { return }
                 withAnimation { proxy.scrollTo(engine.messages.count - 1, anchor: .bottom) }
             }
             .onChange(of: engine.liveTranscript) {

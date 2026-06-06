@@ -1,22 +1,22 @@
 import Foundation
 import os
 
-/// Lightweight per-event wall-clock timer; thread-safe.
-final class TelemetryLogger: Sendable {
+/// Lightweight per-event wall-clock timer.
+/// Each instance is created and used within a single @MainActor process() call,
+/// so no locking is required.
+@MainActor
+final class TelemetryLogger {
 
     private let log = Logger(subsystem: "com.realtimetranslator", category: "telemetry")
-    private let lock = OSAllocatedUnfairLock(initialState: [String: Date]())
+    private var starts: [String: Date] = [:]
 
     func start(_ event: String) {
-        lock.withLock { $0[event] = Date() }
+        starts[event] = Date()
     }
 
     func end(_ event: String, engine: String) {
-        let elapsed = lock.withLock { dict -> TimeInterval? in
-            guard let t = dict.removeValue(forKey: event) else { return nil }
-            return Date().timeIntervalSince(t)
-        }
-        guard let ms = elapsed else { return }
-        log.info("[\(engine, privacy: .public)] \(event, privacy: .public): \(Int(ms * 1000), privacy: .public)ms")
+        guard let t = starts.removeValue(forKey: event) else { return }
+        let ms = Int(Date().timeIntervalSince(t) * 1000)
+        log.info("[\(engine, privacy: .public)] \(event, privacy: .public): \(ms, privacy: .public)ms")
     }
 }
