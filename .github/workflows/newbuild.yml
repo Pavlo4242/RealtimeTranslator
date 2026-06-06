@@ -122,7 +122,7 @@ jobs:
       - name: Build
         run: |
           set -o pipefail
-          xcodebuild \
+          xcodebuild clean build \
             -project RealtimeTranslator.xcodeproj \
             -scheme RealtimeTranslator \
             -destination 'generic/platform=iOS' \

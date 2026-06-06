@@ -40,14 +40,31 @@ final class TranslatorEngine: NSObject {
     // ── Sub-engines ───────────────────────────────────────────────────────
     let whisperEngine = WhisperEngine()
     let appleEngine   = AppleTranslationEngine()
-    /// Backed by UserDefaults so the chosen engine survives app restarts.
-    @AppStorage(AppStorageKeys.preferredEngine)
-    var enginePreference: TranslationEngineType = .auto
 
-    // ── History ───────────────────────────────────────────────────────────
-    @AppStorage(AppStorageKeys.showDebugLog)
-    var showDebugLog: Bool = false
+@ObservationIgnored
+private var _enginePreference: TranslationEngineType {
+    get { 
+        let raw = UserDefaults.standard.string(forKey: AppStorageKeys.preferredEngine) ?? ""
+        return TranslationEngineType(rawValue: raw) ?? .auto 
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: AppStorageKeys.preferredEngine) }
+}
 
+var enginePreference: TranslationEngineType {
+    get { access(keyPath: \.enginePreference); return _enginePreference }
+    set { withMutation(keyPath: \.enginePreference) { _enginePreference = newValue } }
+}
+
+@ObservationIgnored
+private var _showDebugLog: Bool {
+    get { UserDefaults.standard.bool(forKey: AppStorageKeys.showDebugLog) }
+    set { UserDefaults.standard.set(newValue, forKey: AppStorageKeys.showDebugLog) }
+}
+
+var showDebugLog: Bool {
+    get { access(keyPath: \.showDebugLog); return _showDebugLog }
+    set { withMutation(keyPath: \.showDebugLog) { _showDebugLog = newValue } }
+}
     var store = ConversationStore()
     private var currentConversation = StoredConversation()
 
