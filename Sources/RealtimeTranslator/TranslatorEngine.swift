@@ -188,8 +188,9 @@ var showDebugLog: Bool {
         let nativeFormat = input.outputFormat(forBus: 0)
         nativeSampleRate = nativeFormat.sampleRate    // store for resampling
 
-        // Tap at native rate; resample to 16 kHz on main actor before Whisper
-        input.installTap(onBus: 0, bufferSize: 1024, format: nativeFormat) {
+        // explicit standard format (Float32, non-interleaved) so floatChannelData is never nil
+        let format = AVAudioFormat(standardFormatWithSampleRate: nativeFormat.sampleRate, channels: 1)
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) {
             [weak self] buf, _ in
             guard let self else { return }
 
