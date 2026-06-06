@@ -1,0 +1,81 @@
+name: iOS Build
+
+on:
+  workflow_dispatch:
+  #push:
+    branches: [ main ]
+#  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Cache Swift Package Manager dependencies
+      - name: Cache SwiftPM packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/.swiftpm
+          key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftpm-
+
+      # Cache Xcode DerivedData to speed up compilation
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
+
+      - name: Set up Xcode 
+        run:  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build the app
+        run: |
+          set -o pipefail 
+          xcodebuild build \
+            -project RealtimeTranslator.xcodeproj \
+            -scheme RealtimeTranslator \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+            | xcbeautify
+        env:
+          PROJECT_DIR: ${{ github.workspace }}
+
+      - name: Run unit tests (if any)
+        run: |
+          xcodebuild \
+            -scheme Volocal \
+            -configuration Debug \
+            -allowProvisioningUpdates \
+            -destination "platform=iOS Simulator,name=iPhone 17" \
+            test
+        env:
+          PROJECT_DIR: ${{ github.workspace }}
+
+
+           # Package the built app into a payload directory and zip into an IPA
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/RealTimeTranslator.app Payload/
+          zip -qr RealTime.ipa Payload/
+
+      # Upload the output artifact to the GitHub run
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RealTime-Release-IPA
+          path: RealTime.ipa
