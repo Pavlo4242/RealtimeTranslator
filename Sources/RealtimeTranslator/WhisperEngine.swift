@@ -1,5 +1,5 @@
 import Foundation
-import WhisperKit
+@preconcurrency import WhisperKit
 import Observation
 
 // MARK: - State
@@ -49,7 +49,7 @@ final class WhisperEngine {
             detectLanguage:          false,
             skipSpecialTokens:       true,
             withoutTimestamps:       true,
-            suppressBlank:           true,
+            suppressorBlank:          true,
             noSpeechThreshold:       0.6   // discard near-silence frames
         )
     }
@@ -101,7 +101,7 @@ final class WhisperEngine {
             decodeOptions: decodeOptions
         )
 
-        let raw = (results ?? [])
+        let raw = results
             .map(\.text)
             .joined(separator: " ")
 
