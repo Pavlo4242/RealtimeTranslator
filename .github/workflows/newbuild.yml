@@ -23,13 +23,17 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: beautify
+        run: brew install xcbeautify
+
       - name: Generate .xcodeproj
         run: xcodegen generate --spec project.yml
 
       # ── 4. Build ──────────────────────────────────────────────────────────
       - name: Build
         run: |
-          xcodebuild \
+          set -o pipefail
+          xcodebuild clean build \
             -project RealtimeTranslator.xcodeproj \
             -scheme RealtimeTranslator \
             -destination 'generic/platform=iOS' \
@@ -37,7 +41,7 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" 2>&1 | xcbeautify --renderer github-actions
 
       # ── 5. Firma ad-hoc + empaquetar IPA ─────────────────────────────────
       - name: Ad-hoc sign and package IPA
