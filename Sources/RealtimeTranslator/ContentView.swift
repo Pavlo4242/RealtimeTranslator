@@ -209,11 +209,11 @@ struct ContentView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(engine.debugLog.enumerated()), id: \.offset) { i, line in
-                        Text(line)
+                    ForEach(engine.debugLog) { entry in
+                        Text(entry.text)
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(.green)
-                            .id(i)
+                            .id(entry.id)
                     }
                 }
                 .padding(6)
@@ -221,7 +221,9 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: 110)
             .background(Color.black.opacity(0.8))
             .onChange(of: engine.debugLog.count) {
-                proxy.scrollTo(engine.debugLog.count - 1, anchor: .bottom)
+                if let last = engine.debugLog.last {
+                    proxy.scrollTo(last.id, anchor: .bottom)
+                }
             }
         }
         .allowsHitTesting(false)

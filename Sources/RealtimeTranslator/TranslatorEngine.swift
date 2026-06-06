@@ -13,6 +13,11 @@ enum TranslationEngineType: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+struct LogEntry: Identifiable, Sendable {
+    let id = UUID()
+    let text: String
+}
+
 struct TranslationMessage: Identifiable {
     let id        = UUID()
     let english:    String
@@ -32,7 +37,7 @@ final class TranslatorEngine: NSObject {
     var isReady      = false
     var audioLevel:  Float = 0
     var statusLabel  = "Initialising…"
-    var debugLog:    [String] = []
+    var debugLog:    [LogEntry] = []
     var errorMessage: String?
     var liveTranscript = ""          // "🎤 Listening…" / "⟳ Translating…"
     var messages:    [TranslationMessage] = []
@@ -61,15 +66,21 @@ private var _showDebugLog: Bool {
     set { UserDefaults.standard.set(newValue, forKey: AppStorageKeys.showDebugLog) }
 }
 
-var showDebugLog: Bool {
-    get { access(keyPath: \.showDebugLog); return _showDebugLog }
-    set { withMutation(keyPath: \.showDebugLog) { _showDebugLog = newValue } }
-}
+    var showDebugLog: Bool {
+        get { access(keyPath: \.showDebugLog); return _showDebugLog }
+        set { withMutation(keyPath: \.showDebugLog) { _showDebugLog = newValue } }
+    }
+
+    var exportableLog: String {
+        debugLog.map(\.text).joined(separator: "\n")
+    }
+
     var store = ConversationStore()
     private var currentConversation = StoredConversation()
 
     // ── Audio ─────────────────────────────────────────────────────────────
     private let audioEngine   = AVAudioEngine()
+    private let audioQueue    = DispatchQueue(label: "com.rt.audioQueue", qos: .userInteractive)
     private var nativeSampleRate: Double = 44_100
     private var rawSpeechBuffer: [Float] = []
     /// Holds at most one chunk that arrived while processing was busy.
@@ -84,7 +95,21 @@ var showDebugLog: Bool {
     private let silenceDur:     TimeInterval = 1.2 // silence → commit
     private let minSpeechDur:   TimeInterval = 0.4 // ignore clips shorter than this
 
-    override init() { super.init() }
+    override init() {
+        super.init()
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let self = self,
+                  let info = notification.userInfo,
+                  let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+            if type == .began {
+                Task { @MainActor in
+                    self.log("AVAudioSession interruption began. Stopping audio.")
+                    if self.isListening { self.stopListening() }
+                }
+            }
+        }
+    }
 
     // MARK: - Boot
 
@@ -188,25 +213,30 @@ var showDebugLog: Bool {
         let nativeFormat = input.outputFormat(forBus: 0)
         nativeSampleRate = nativeFormat.sampleRate    // store for resampling
 
-        // explicit standard format (Float32, non-interleaved) so floatChannelData is never nil
-        let format = AVAudioFormat(standardFormatWithSampleRate: nativeFormat.sampleRate, channels: 1)
+        let chCount = max(1, nativeFormat.channelCount)
+        let format = AVAudioFormat(standardFormatWithSampleRate: nativeFormat.sampleRate, channels: chCount)!
+        
+        log("startAudio: SR=\(nativeSampleRate), channels=\(chCount)")
+
         input.installTap(onBus: 0, bufferSize: 1024, format: format) {
             [weak self] buf, _ in
             guard let self else { return }
 
-            guard let ch = buf.floatChannelData?[0] else { return }
-            let n = Int(buf.frameLength)
+            self.audioQueue.async {
+                guard let ch = buf.floatChannelData?[0] else { return }
+                let n = Int(buf.frameLength)
 
-            // Compute RMS on audio thread (no actor hop for simple maths)
-            var sum: Float = 0
-            for i in 0..<n { sum += ch[i] * ch[i] }
-            let rms  = sqrt(sum / Float(max(n, 1)))
-            let db   = 20 * log10(max(rms, 1e-10))
-            let lvl  = max(0, min(1, (db + 60) / 60))
+                // Compute RMS on audio thread (no actor hop for simple maths)
+                var sum: Float = 0
+                for i in 0..<n { sum += ch[i] * ch[i] }
+                let rms  = sqrt(sum / Float(max(n, 1)))
+                let db   = 20 * log10(max(rms, 1e-10))
+                let lvl  = max(0, min(1, (db + 60) / 60))
 
-            let samples = Array(UnsafeBufferPointer(start: ch, count: n))
-            Task { @MainActor [weak self] in
-                self?.onAudio(samples: samples, db: db, level: lvl)
+                let samples = Array(UnsafeBufferPointer(start: ch, count: n))
+                Task { @MainActor [weak self] in
+                    self?.onAudio(samples: samples, db: db, level: lvl)
+                }
             }
         }
 
@@ -226,6 +256,7 @@ var showDebugLog: Bool {
                 isSpeechActive = true
                 speechStart    = now
                 liveTranscript = "🎤 Listening…"
+                log("VAD: Speech started")
             }
             silenceStart = nil
             rawSpeechBuffer.append(contentsOf: samples)
@@ -249,6 +280,7 @@ var showDebugLog: Bool {
                         commitChunk()
                     } else {
                         resetBuffer()        // too short (cough, noise)
+                        log("VAD: Speech too short, ignored")
                     }
                 }
             }
@@ -257,6 +289,7 @@ var showDebugLog: Bool {
 
     private func commitChunk() {
         guard !rawSpeechBuffer.isEmpty else { return }
+        log("commitChunk: flushing \(rawSpeechBuffer.count) samples")
         let raw = rawSpeechBuffer
         resetBuffer()
 
@@ -381,8 +414,9 @@ var showDebugLog: Bool {
 
     private func log(_ msg: String) {
         let ts = Date().formatted(.dateTime.hour().minute().second())
-        debugLog.append("[\(ts)] \(msg)")
-        if debugLog.count > 40 { debugLog.removeFirst() }
+        let entry = LogEntry(text: "[\(ts)] \(msg)")
+        debugLog.append(entry)
+        if debugLog.count > 500 { debugLog.removeFirst() }
         print("RT: \(msg)")
     }
 }

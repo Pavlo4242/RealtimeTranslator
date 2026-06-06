@@ -1,6 +1,25 @@
 import Foundation
+import SwiftUI
 @preconcurrency import WhisperKit
 import Observation
+
+// MARK: - Types
+
+enum WhisperModel: String, CaseIterable, Identifiable {
+    case tiny  = "openai_whisper-tiny"
+    case base  = "openai_whisper-base"
+    case small = "openai_whisper-small"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .tiny:  return "Tiny"
+        case .base:  return "Base"
+        case .small: return "Small"
+        }
+    }
+}
 
 // MARK: - State
 
@@ -32,9 +51,20 @@ final class WhisperEngine {
     var state: WhisperEngineState = .idle
     var isReady: Bool { state == .ready }
 
-    // "small" gives a good quality/speed tradeoff for Thai on A-series chips.
-    // Swap for "openai_whisper-base" if startup latency matters more than accuracy.
-    private let modelName = "openai_whisper-small"
+    @ObservationIgnored
+    private var _modelPreference: WhisperModel {
+        get {
+            let raw = UserDefaults.standard.string(forKey: AppStorageKeys.whisperModel) ?? ""
+            return WhisperModel(rawValue: raw) ?? .small
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: AppStorageKeys.whisperModel) }
+    }
+
+    var modelPreference: WhisperModel {
+        get { access(keyPath: \.modelPreference); return _modelPreference }
+        set { withMutation(keyPath: \.modelPreference) { _modelPreference = newValue } }
+    }
+
     private var kit: WhisperKit?
 
     private var decodeOptions: DecodingOptions {
@@ -70,7 +100,7 @@ final class WhisperEngine {
         state = .loading
         do {
             let cfg = WhisperKitConfig(
-                model: modelName,
+                model: modelPreference.rawValue,
                 computeOptions: ModelComputeOptions(
                     audioEncoderCompute: .cpuAndNeuralEngine,   // ANE for encoder
                     textDecoderCompute:  .cpuAndNeuralEngine
@@ -86,6 +116,13 @@ final class WhisperEngine {
         } catch {
             state = .failed(error.localizedDescription)
         }
+    }
+
+    func changeModel(to newModel: WhisperModel) async {
+        modelPreference = newModel
+        kit = nil
+        state = .idle
+        await setup()
     }
 
     // MARK: - Inference (Phase 4.1 – 4.4)

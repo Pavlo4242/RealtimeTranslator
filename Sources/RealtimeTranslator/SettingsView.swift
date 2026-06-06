@@ -29,6 +29,16 @@ struct SettingsView: View {
 
                     // ── Whisper model status ──────────────────────────────
                     Section("Whisper Model") {
+                        Picker("Model Size", selection: $engine.whisperEngine.modelPreference) {
+                            ForEach(WhisperModel.allCases) { m in
+                                Text(m.displayName).tag(m)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .onChange(of: engine.whisperEngine.modelPreference) { _, newValue in
+                            Task { await engine.whisperEngine.changeModel(to: newValue) }
+                        }
+                        
                         whisperStatusRow
                         if case .failed = engine.whisperEngine.state {
                             Button("Retry download") {
@@ -56,6 +66,9 @@ struct SettingsView: View {
                     // ── Developer ────────────────────────────────────────
                     Section("Developer") {
                         Toggle("Show debug log", isOn: $engine.showDebugLog)
+                        ShareLink(item: engine.exportableLog) {
+                            Label("Export Debug Log", systemImage: "square.and.arrow.up")
+                        }
                     }
                     .listRowBackground(Color(white: 0.14))
 
@@ -86,7 +99,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var whisperStatusRow: some View {
         HStack {
-            Text("openai_whisper-small")
+            Text(engine.whisperEngine.modelPreference.rawValue)
             Spacer()
             switch engine.whisperEngine.state {
             case .idle:
