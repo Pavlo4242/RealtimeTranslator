@@ -8,6 +8,11 @@ options:
   xcodeVersion: "16"
 
 # ── SPM packages ─────────────────────────────────────────────────────────────
+
+packages:
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio
+    from: "0.12.4"
 packages:
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit
@@ -40,6 +45,7 @@ targets:
     dependencies:
       - package: WhisperKit
         product: WhisperKit
+      - package: FluidAudio
 
     info:
       path: Resources/Info.plist
