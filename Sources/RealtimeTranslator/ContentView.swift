@@ -20,8 +20,7 @@ struct ContentView: View {
         // Apple engine translation session hook (Phase 6)
       .translationTask(engine.appleEngine.translationConfig) { session in
     // Explicitly hop to MainActor to handle the session
-    await MainActor.run {
-        Task {
+        Task { @MainActor in
             await engine.appleEngine.handleSession(session)
         }
     }
