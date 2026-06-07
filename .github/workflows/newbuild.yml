@@ -136,7 +136,6 @@ jobs:
             CODE_SIGN_ENTITLEMENTS="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             DEVELOPMENT_TEAM="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
             2>&1 | xcbeautify --renderer github-actions
 
            
