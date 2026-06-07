@@ -128,6 +128,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -verbose
             INFOPLIST_FILE="$RUNNER_TEMP/GeneratedInfo/Info.plist" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify --renderer github-actions
