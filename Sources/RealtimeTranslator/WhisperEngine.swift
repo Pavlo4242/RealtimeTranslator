@@ -50,6 +50,9 @@ final class WhisperEngine {
     var state: WhisperEngineState = .idle // ADD THIS
     // Add these configuration properties
     var targetLanguage: String = "th" 
+    var isReady: Bool {
+        state == .ready
+    }
     var isTranslationTask: Bool = true
 
     @ObservationIgnored
