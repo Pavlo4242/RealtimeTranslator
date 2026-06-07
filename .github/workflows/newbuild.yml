@@ -130,9 +130,16 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             -verbose
             INFOPLIST_FILE="$RUNNER_TEMP/GeneratedInfo/Info.plist" \
+            CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | xcbeautify --renderer github-actions
-            
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            2>&1 | xcbeautify --renderer github-actions
+
+           
       # ── 5. Firma ad-hoc + empaquetar IPA ─────────────────────────────────
       - name: Ad-hoc sign and package IPA
         run: |
