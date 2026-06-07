@@ -46,8 +46,8 @@ enum WhisperEngineState: Equatable {
 /// Thai audio → English text in one acoustic pass (translate = true).
 @Observable
 @MainActor
-final class WhisperEngine: ObservableObject { // Or @Observable if using iOS 17+
-    
+final class WhisperEngine {
+    var state: WhisperEngineState = .idle // ADD THIS
     // Add these configuration properties
     var targetLanguage: String = "th" 
     var isTranslationTask: Bool = true
@@ -72,7 +72,7 @@ final class WhisperEngine: ObservableObject { // Or @Observable if using iOS 17+
         DecodingOptions(
             verbose:                 false,
             task: isTranslationTask ? .translate : .transcribe, // Toggle between Transcribe vs Translate
-            language: th,                           // Change this to "en", "th", "ja", etc.
+            language: "th",                           // Change this to "en", "th", "ja", etc.
             temperature:             0.0,
             temperatureFallbackCount: 0,
             topK:                    5,

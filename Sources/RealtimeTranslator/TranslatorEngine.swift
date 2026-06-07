@@ -1,6 +1,6 @@
 import SwiftUI
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 import Speech
 import Observation
 
@@ -43,7 +43,7 @@ final class TranslatorEngine: NSObject {
     var messages:    [TranslationMessage] = []
 
     // ── Sub-engines ───────────────────────────────────────────────────────
-    let whisperEngine = WhisperEngine()
+    var whisperEngine = WhisperEngine()
     let appleEngine   = AppleTranslationEngine()
 
 @ObservationIgnored
