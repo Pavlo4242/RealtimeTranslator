@@ -43,7 +43,7 @@ final class TranslatorEngine: NSObject {
     var messages:    [TranslationMessage] = []
 
     // ── Sub-engines ───────────────────────────────────────────────────────
-    var whisperEngine = WhisperEngine()
+    var whisperEngine = FluidEngine()
     let appleEngine   = AppleTranslationEngine()
 
 @ObservationIgnored
@@ -117,7 +117,7 @@ private var _showDebugLog: Bool {
         statusLabel = "Requesting permissions…"
         guard await requestPermissions() else { return }
 
-        statusLabel = "Loading Whisper model (first run downloads ~500 MB)…"
+        statusLabel = "Loading FluidAudio model (first run downloads)…"
         log("Starting Whisper setup")
         await whisperEngine.setup()
 
@@ -147,9 +147,8 @@ private var _showDebugLog: Bool {
 
     private func requestPermissions() async -> Bool {
         let speech = await withCheckedContinuation { cont in
-            SFSpeechRecognizer.requestAuthorization {
-                cont.resume(returning: $0 == .authorized)
-            }
+         
+         
         }
         guard speech else {
             errorMessage = "Speech recognition permission denied."
