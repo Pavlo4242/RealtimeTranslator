@@ -18,9 +18,14 @@ struct ContentView: View {
             }
         }
         // Apple engine translation session hook (Phase 6)
-        .translationTask(engine.appleEngine.translationConfig) { session in
+      .translationTask(engine.appleEngine.translationConfig) { session in
+    // Explicitly hop to MainActor to handle the session
+    await MainActor.run {
+        Task {
             await engine.appleEngine.handleSession(session)
         }
+    }
+}
         .sheet(isPresented: $showHistory)  { HistoryView(store: engine.store) }
         .sheet(isPresented: $showSettings) {
             SettingsView(engine: engine, isPresented: $showSettings)

@@ -94,17 +94,21 @@ final class AppleTranslationEngine {
     }
 
     /// Called by ContentView's .translationTask modifier.
-    func handleSession(_ session: TranslationSession) async {
-        guard let cont = sessionContinuation else { return }
-        sessionContinuation = nil
-        do {
-            let r = try await session.translate(pendingText)
-            cont.resume(returning: r.targetText)
-        } catch {
-            cont.resume(throwing: error)
-        }
-        translationConfig = nil
+    @MainActor // Ensure this is explicitly on the MainActor
+func handleSession(_ session: TranslationSession) async {
+    // Capture the continuation
+    guard let cont = sessionContinuation else { return }
+    sessionContinuation = nil
+    
+    do {
+        // Perform the translation on the MainActor
+        let r = try await session.translate(pendingText)
+        cont.resume(returning: r.targetText)
+    } catch {
+        cont.resume(throwing: error)
     }
+    translationConfig = nil
+}
 
     func cancel() {
         sessionContinuation?.resume(throwing: CancellationError())
