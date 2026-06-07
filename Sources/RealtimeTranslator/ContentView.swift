@@ -185,27 +185,23 @@ struct ContentView: View {
     }
 
     private var engineBadge: some View {
-        Group {
-            switch engine.whisperEngine.state {
-            case .ready, .inferring:
-                Label("Whisper · ANE", systemImage: "brain.head.profile")
-                    .foregroundStyle(.cyan.opacity(0.6))
-            case .loading:
-                Label("Loading model…", systemImage: "arrow.down.circle")
-                    .foregroundStyle(.orange.opacity(0.6))
-            case .failed:
-                if engine.appleEngine.isAvailable {
-                    Label("Apple Translate", systemImage: "apple.logo")
-                        .foregroundStyle(.yellow.opacity(0.6))
-                } else {
-                    Label("No engine", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.red.opacity(0.7))
-                }
-            default: EmptyView()
-            }
+    Group {
+        switch qwenEngine.state {
+        case .ready, .inferring:
+            Label("Qwen3-ASR · ANE", systemImage: "brain.head.profile")
+                .foregroundStyle(.cyan.opacity(0.6))
+        case .loading:
+            Label("Loading model…", systemImage: "arrow.down.circle")
+                .foregroundStyle(.orange.opacity(0.6))
+        case .failed:
+            Label("Qwen3 unavailable", systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.red.opacity(0.7))
+        default:
+            EmptyView()
         }
-        .font(.caption2)
     }
+    .font(.caption2)
+}
 
     // MARK: - Debug overlay
 
