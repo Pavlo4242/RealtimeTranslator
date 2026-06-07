@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import Observation
 import FluidAudio
 
@@ -6,12 +7,10 @@ import FluidAudio
 @MainActor
 final class FluidEngine {
 
-    // Mirrors WhisperEngineState so TranslatorEngine.boot() needs no changes
     var state: WhisperEngineState = .idle
-
     var isReady: Bool { state == .ready }
 
-    private var asr: SlidingWindowAsrManager?
+    private var manager: Qwen3AsrManager?
 
     // MARK: - Setup  (called once from TranslatorEngine.boot())
 
@@ -22,10 +21,8 @@ final class FluidEngine {
         }
         state = .loading
         do {
-            let models = try await AsrModels.downloadAndLoad(version: .v3)
-            let mgr = SlidingWindowAsrManager(config: .default)
-            try await mgr.loadModels(models)
-            self.asr = mgr
+            // INT8 halves RAM (~600 MB vs ~1.1 GB) with minimal accuracy loss
+            manager = try await Qwen3AsrManager(variant: .int8)
             state = .ready
         } catch {
             state = .failed(error.localizedDescription)
@@ -35,26 +32,12 @@ final class FluidEngine {
     // MARK: - Inference  (same signature as WhisperEngine.translate)
 
     func translate(_ samples: [Float]) async throws -> String {
-        guard let asr else { throw WhisperError.notReady }
+        guard let manager else { throw WhisperError.notReady }
         state = .inferring
         defer { if state == .inferring { state = .ready } }
 
-        // Feed samples as a one-shot buffer via a temporary AVAudioPCMBuffer
-        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
-                                   sampleRate: 16_000,
-                                   channels: 1,
-                                   interleaved: false)!
-        guard let buf = AVAudioPCMBuffer(pcmFormat: format,
-                                         frameCapacity: AVAudioFrameCount(samples.count))
-        else { throw WhisperError.notReady }
-        buf.frameLength = AVAudioFrameCount(samples.count)
-        buf.floatChannelData![0].update(from: samples, count: samples.count)
-
-        try await asr.startStreaming()
-        await asr.streamAudio(buf)
-        let text = try await asr.finish()
-        try await asr.reset()
-
+        // samples are already 16 kHz mono Float32 from TranslatorEngine.resampleLinear
+        let text = try await manager.transcribe(samples)
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
