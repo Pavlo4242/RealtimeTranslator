@@ -7,16 +7,10 @@ options:
   createIntermediateGroups: true
   xcodeVersion: "16"
 
-# ── SPM packages ─────────────────────────────────────────────────────────────
-
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio
-    from: "0.12.4"
-packages:
-  WhisperKit:
-    url: https://github.com/argmaxinc/WhisperKit
-    from: "0.9.0"
+    from: "0.14.5"
 
 settings:
   base:
@@ -28,28 +22,26 @@ targets:
   RealtimeTranslator:
     type: application
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "18.0"   # was "26.0" — fixed
 
     sources:
       - path: Sources/RealtimeTranslator
         type: group
         excludes:
-          - "*.old"                  # backup files
-          - "*.md"                   # documentation
-          - "AppleTranslator.swift"  # deleted; replaced by AppleTranslationEngine.swift
+          - "*.old"
+          - "*.md"
+          - "AppleTranslator.swift"
+          - "WhisperEngine.swift"    # deleted; replaced by QwenEngine.swift
 
     resources:
       - Resources/Assets.xcassets
 
-    # WhisperKit provides whisper.cpp + CoreML encoder for ANE
     dependencies:
-      - package: WhisperKit
-        product: WhisperKit
       - package: FluidAudio
+        product: FluidAudio
 
     info:
       path: Resources/Info.plist
-
     entitlements:
       path: Resources/RealtimeTranslator.entitlements
 
