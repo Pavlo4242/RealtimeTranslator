@@ -23,7 +23,7 @@ targets:
   RealtimeTranslator:
     type: application
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "18.0"
 
     sources:
       - path: Sources/RealtimeTranslator
