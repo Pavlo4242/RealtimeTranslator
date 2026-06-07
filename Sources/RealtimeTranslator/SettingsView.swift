@@ -9,61 +9,31 @@ struct SettingsView: View {
             ZStack {
                 Color(white: 0.07).ignoresSafeArea()
                 Form {
-                    // ── Engine selector ───────────────────────────────────
-                    Section {
-                        Picker("Preferred engine", selection: $engine.enginePreference) {
-                            ForEach(TranslationEngineType.allCases) { t in
-                                Text(t.rawValue).tag(t)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .listRowBackground(Color(white: 0.14))
-                    } header: {
-                        Text("Translation Engine")
-                            .foregroundStyle(.white.opacity(0.5))
-                    } footer: {
-                        Text("Whisper (ANE) runs fully on-device via the Apple Neural Engine. "
-                           + "Apple Translate uses SFSpeechRecognizer + the system Translation framework.")
-                            .foregroundStyle(.white.opacity(0.3))
-                    }
-
-                    // ── Whisper model status ──────────────────────────────
-                    Section("Whisper Model") {
-                        Picker("Model Size", selection: $engine.whisperEngine.modelPreference) {
-                            ForEach(WhisperModel.allCases) { m in
-                                Text(m.displayName).tag(m)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .onChange(of: engine.whisperEngine.modelPreference) { _, newValue in
-                            Task { await engine.whisperEngine.changeModel(to: newValue) }
-                        }
-                        
-                        whisperStatusRow
-                        if case .failed = engine.whisperEngine.state {
+                    // ── Qwen3-ASR status ──────────────────────────────────
+                    Section("Qwen3-ASR (Thai → Thai text)") {
+                        qwenStatusRow
+                        if case .failed = engine.qwenEngine.state {
                             Button("Retry download") {
-                                Task { await engine.whisperEngine.setup() }
+                                Task { await engine.qwenEngine.setup() }
                             }
                             .foregroundStyle(.cyan)
-                            .disabled(engine.whisperEngine.state == .inferring)
                         }
                     }
                     .listRowBackground(Color(white: 0.14))
 
-                    // ── Apple engine status ───────────────────────────────
-                    Section("Apple Translate Fallback") {
+                    // ── Apple Translation status ──────────────────────────
+                    Section("Apple Translation (Thai text → English)") {
                         HStack {
-                            Text("Thai ASR (SFSpeechRecognizer)")
+                            Text("System framework")
                             Spacer()
-                            Text(engine.appleEngine.isAvailable ? "✓ Available" : "✗ Unavailable")
+                            Text("✓ Always available")
                                 .font(.caption)
-                                .foregroundStyle(engine.appleEngine.isAvailable
-                                                 ? .green : .red.opacity(0.7))
+                                .foregroundStyle(.green)
                         }
                     }
                     .listRowBackground(Color(white: 0.14))
 
-                    // ── Developer ────────────────────────────────────────
+                    // ── Developer ─────────────────────────────────────────
                     Section("Developer") {
                         Toggle("Show debug log", isOn: $engine.showDebugLog)
                         ShareLink(item: engine.exportableLog) {
@@ -97,14 +67,13 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var whisperStatusRow: some View {
+    private var qwenStatusRow: some View {
         HStack {
-            Text(engine.whisperEngine.modelPreference.rawValue)
+            Text("qwen3-asr-0.6b · INT8 (~0.6 GB)")
             Spacer()
-            switch engine.whisperEngine.state {
+            switch engine.qwenEngine.state {
             case .idle:
-                Text("Not started")
-                    .font(.caption).foregroundStyle(.white.opacity(0.35))
+                Text("Not started").font(.caption).foregroundStyle(.white.opacity(0.35))
             case .loading:
                 HStack(spacing: 6) {
                     ProgressView().scaleEffect(0.8)
@@ -115,7 +84,7 @@ struct SettingsView: View {
             case .inferring:
                 Text("⟳ Inferring").font(.caption).foregroundStyle(.cyan)
             case .failed(let e):
-                Text("✗ " + (e.prefix(30))).font(.caption).foregroundStyle(.red)
+                Text("✗ \(e.prefix(30))").font(.caption).foregroundStyle(.red)
             }
         }
     }
