@@ -30,7 +30,7 @@ targets:
     platform: iOS
     deploymentTarget: "18.0"
     sources:
-      - path: Sources/RealtimeTranslator
+      - path: Sources
         type: group
         excludes:
           - "*.old"                  # backup files
