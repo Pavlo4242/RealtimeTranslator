@@ -15,7 +15,7 @@ packages:
   
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    from: "0.12.4"
+    from: "0.13.6"
 
 
 settings:
@@ -30,13 +30,15 @@ targets:
     platform: iOS
     deploymentTarget: "18.0"
 
-    sources:
+   sources:
       - path: Sources/RealtimeTranslator
         type: group
         excludes:
           - "*.old"                  # backup files
           - "*.md"                   # documentation
           - "AppleTranslator.swift"  # deleted; replaced by AppleTranslationEngine.swift
+          - "FluidEngine.swift"      # replaced by QwenEngine.swift
+          - "RecognitionService.swift"
 
     resources:
       - Resources/Assets.xcassets
