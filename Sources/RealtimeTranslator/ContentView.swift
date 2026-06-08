@@ -17,14 +17,13 @@ struct ContentView: View {
                 micBar
             }
         }
-        // Apple engine translation session hook (Phase 6)
+     // Apple engine translation session hook (Phase 6)
       .translationTask(engine.appleEngine.translationConfig) { session in
     // Explicitly hop to MainActor to handle the session
         Task { @MainActor in
             await engine.appleEngine.handleSession(session)
         }
     }
-}
         .sheet(isPresented: $showHistory)  { HistoryView(store: engine.store) }
         .sheet(isPresented: $showSettings) {
             SettingsView(engine: engine, isPresented: $showSettings)
@@ -184,9 +183,9 @@ struct ContentView: View {
         .background(Color(white: 0.11))
     }
 
-    private var engineBadge: some View {
+   private var engineBadge: some View {
     Group {
-        switch qwenEngine.state {
+        switch engine.qwenEngine.state {
         case .ready, .inferring:
             Label("Qwen3-ASR · ANE", systemImage: "brain.head.profile")
                 .foregroundStyle(.cyan.opacity(0.6))
