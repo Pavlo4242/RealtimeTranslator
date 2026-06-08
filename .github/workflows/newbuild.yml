@@ -128,7 +128,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            -verbose
+            -verbose \
             INFOPLIST_FILE="$RUNNER_TEMP/GeneratedInfo/Info.plist" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
