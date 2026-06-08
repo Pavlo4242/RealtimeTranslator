@@ -44,7 +44,8 @@ final class QwenEngine {
         state = .loading
         do {
             manager = Qwen3AsrManager()
-            try await manager!.loadModels()   // downloads INT8 weights (~0.6 GB) once
+            let models = try await AsrModels.downloadAndLoad(version: .v3)
+            try await manager!.loadModels(models)   // downloads INT8 weights (~0.6 GB) once
             state = .ready
         } catch {
             state = .failed(error.localizedDescription)
