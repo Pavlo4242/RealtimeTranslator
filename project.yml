@@ -12,6 +12,11 @@ packages:
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit
     from: "0.9.0"
+  
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    from: "0.12.4"
+
 
 settings:
   base:
@@ -36,10 +41,17 @@ targets:
     resources:
       - Resources/Assets.xcassets
 
+dependencies: [
+    .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.12.4"),
+],
+
+
     # WhisperKit provides whisper.cpp + CoreML encoder for ANE
     dependencies:
       - package: WhisperKit
         product: WhisperKit
+      - package: FluidAudio
+        product: FluidAudio
 
     info:
       path: Resources/Info.plist
