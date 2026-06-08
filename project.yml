@@ -41,10 +41,6 @@ targets:
     resources:
       - Resources/Assets.xcassets
 
-dependencies: [
-    .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.12.4"),
-],
-
 
     # WhisperKit provides whisper.cpp + CoreML encoder for ANE
     dependencies:
