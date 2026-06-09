@@ -22,7 +22,7 @@ final class FluidEngine {
         state = .loading
         do {
             // INT8 halves RAM (~600 MB vs ~1.1 GB) with minimal accuracy loss
-            manager = try await Qwen3AsrManager(variant: .int8)
+            manager = try await Qwen3AsrManager(config: .int8)
             state = .ready
         } catch {
             state = .failed(error.localizedDescription)
