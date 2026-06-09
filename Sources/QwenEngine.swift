@@ -43,8 +43,8 @@ final class QwenEngine {
         }
         state = .loading
         do {
-            // Qwen3AsrManager handles model download/load internally via variant parameter
-            manager = try await Qwen3AsrManager(variant: .int8)
+            // Qwen3AsrManager handles model download/load internally via config parameter
+            manager = try await Qwen3AsrManager(config: .int8)
             state = .ready
         } catch {
             state = .failed(error.localizedDescription)
